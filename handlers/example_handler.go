@@ -1,47 +1,46 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jbrit/gojibs/models"
 	"gorm.io/gorm"
 )
 
-type ExampleInput struct {
-	Name string `json:"name" form:"name" binding:"required"`
-}
-
-func CreateExample(c *gin.Context, db *gorm.DB) {
-	// receive and validate json input
-	var input ExampleInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	u, err := uuid.NewRandom()
+func requireAuth(c *gin.Context, db *gorm.DB) (*models.User, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(c.GetHeader("Authorization"), claims, func(token *jwt.Token) (any, error) {
+		return jwtKey, nil
+	})
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		if err == jwt.ErrSignatureInvalid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return nil, fmt.Errorf("")
+		}
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil, fmt.Errorf("")
 	}
-	example := models.Example{
-		ID:   u.String(),
-		Name: input.Name,
+	if !token.Valid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return nil, fmt.Errorf("")
 	}
-	if tx := db.Create(&example); tx.Error != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
-		return
+
+	var user models.User
+	if err := db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid authentication token"})
+		return nil, fmt.Errorf("")
 	}
-	c.JSON(http.StatusCreated, gin.H{"data": example})
+	return &user, nil
 }
 
-func GetExamples(c *gin.Context, db *gorm.DB) {
-	var examples []models.Example
-	tx := db.Find(&examples)
-	if tx.Error != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+func CurrentUser(c *gin.Context, db *gorm.DB) {
+
+	user, err := requireAuth(c, db)
+	if err != nil {
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"data": examples})
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }

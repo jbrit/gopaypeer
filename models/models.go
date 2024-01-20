@@ -5,9 +5,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type Example struct {
-	ID   string `json:"id" gorm:"primarykey"`
-	Name string `json:"name"`
+type User struct {
+	ID            string `json:"id" gorm:"primarykey"`
+	Email         string `json:"email" gorm:"unique"`
+	EmailVerified bool   `json:"email_verified"`
+	PasswordHash  string `json:"-"`
 }
 
 func ConnectDB() *gorm.DB {
@@ -16,8 +18,8 @@ func ConnectDB() *gorm.DB {
 		panic("could not connect to db")
 	}
 
-	// TODO: handle migrations as a script?
-	db.AutoMigrate(&Example{})
+	// TODO: handle migrations as a script
+	db.AutoMigrate(&User{})
 
 	return db
 }

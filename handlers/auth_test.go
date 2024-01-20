@@ -2,6 +2,6 @@ package handlers
 
 import "testing"
 
-func TestExample(t *testing.T) {
+func TestAuth(t *testing.T) {
 
 }
