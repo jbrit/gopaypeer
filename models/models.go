@@ -25,6 +25,7 @@ func (u *User) SendMail(message string) {
 }
 
 func (user *User) ExpireOTP(OTP string, db *gorm.DB) error {
+	// TODO: limit to 3 valid calls
 	if !user.OtpExpiresAt.Before(time.Now()) && user.Otp == OTP {
 		user.OtpExpiresAt = time.Now()
 		return db.Save(user).Error

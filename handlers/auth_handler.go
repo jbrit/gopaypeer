@@ -116,7 +116,7 @@ func CreateOTP(c *gin.Context, db *gorm.DB) {
 	var user models.User
 	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		// NOTE: for security reasons
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Please Check your mail for the OTP"})
+		c.AbortWithStatusJSON(http.StatusCreated, gin.H{"error": "Please Check your mail for the OTP"})
 		return
 	}
 
@@ -141,7 +141,7 @@ func CreateOTP(c *gin.Context, db *gorm.DB) {
 
 	switch input.Reason {
 	case "passwordreset":
-		message := fmt.Sprintf("An attempt was made to reset your password.\n Your OTP is %s it expires at %s", user.Otp, user.OtpExpiresAt.UTC().Format(time.TimeOnly))
+		message := fmt.Sprintf("An attempt was made to reset your password. \nYour OTP is %s it expires in 10 minutes (%s GMT).", user.Otp, user.OtpExpiresAt.UTC().Format(time.TimeOnly))
 		user.SendMail(message)
 		break
 	default:
@@ -209,6 +209,7 @@ func ChangePassword(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
+	// TODO: expire token after use
 	passwordResetClaims := &PasswordResetClaims{}
 	if err := VerifyJwt(input.PasswordResetToken, passwordResetJwtKey, passwordResetClaims); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})

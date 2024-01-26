@@ -15,6 +15,9 @@ func main() {
 	}
 	router.POST("/register", dbHandler(handlers.RegisterUser))
 	router.POST("/login", dbHandler(handlers.LoginUser))
+	router.POST("/send-otp", dbHandler(handlers.CreateOTP))
+	router.POST("/reset-password-otp", dbHandler(handlers.GetPasswordChangeToken))
+	router.POST("/reset-password", dbHandler(handlers.ChangePassword))
 	router.GET("/me", dbHandler(handlers.CurrentUser))
 
 	router.Run("localhost:8999")
