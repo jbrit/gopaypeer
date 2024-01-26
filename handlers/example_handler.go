@@ -5,27 +5,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jbrit/gojibs/models"
 	"gorm.io/gorm"
 )
 
 func requireAuth(c *gin.Context, db *gorm.DB) (*models.User, error) {
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(c.GetHeader("Authorization"), claims, func(token *jwt.Token) (any, error) {
-		return jwtKey, nil
-	})
-	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return nil, fmt.Errorf("")
-		}
+	if err := VerifyJwt(c.GetHeader("Authorization"), jwtKey, claims); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return nil, fmt.Errorf("")
-	}
-	if !token.Valid {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return nil, fmt.Errorf("")
+		return nil, err
 	}
 
 	var user models.User
