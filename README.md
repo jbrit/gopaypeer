@@ -1,2 +1,2 @@
-# gojibs
-gojibs is a golang template repo for my personal projects, feel free to use it :)
+# gopaypeer
+gopaypeer is a golang repo for paypeer :)

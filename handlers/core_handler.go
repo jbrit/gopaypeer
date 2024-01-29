@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jbrit/gojibs/models"
+	"github.com/jbrit/gopaypeer/models"
 	"gorm.io/gorm"
 )
 

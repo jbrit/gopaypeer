@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/jbrit/gojibs/models"
+	"github.com/jbrit/gopaypeer/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -51,6 +51,9 @@ func RegisterUser(c *gin.Context, db *gorm.DB) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
 		return
 	}
+
+	user.GetOrCreateSolanaAccount(db)
+
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
 
@@ -96,6 +99,8 @@ func LoginUser(c *gin.Context, db *gorm.DB) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	user.GetOrCreateSolanaAccount(db)
 
 	c.JSON(http.StatusOK, gin.H{"user": user, "access_token": tokenString})
 }
