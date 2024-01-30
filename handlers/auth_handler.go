@@ -16,8 +16,10 @@ import (
 )
 
 type RegisterUserInput struct {
-	Email    string `json:"email" form:"email" binding:"required,email"`
-	Password string `json:"password" form:"password" binding:"required"`
+	FirstName string `json:"first_name" form:"first_name" binding:"required"`
+	LastName  string `json:"last_name" form:"last_name" binding:"required"`
+	Email     string `json:"email" form:"email" binding:"required,email"`
+	Password  string `json:"password" form:"password" binding:"required"`
 }
 
 func RegisterUser(c *gin.Context, db *gorm.DB) {
@@ -43,6 +45,8 @@ func RegisterUser(c *gin.Context, db *gorm.DB) {
 	user := models.User{
 		ID:            u.String(),
 		Email:         input.Email,
+		FirstName:     input.FirstName,
+		LastName:      input.LastName,
 		EmailVerified: false,
 		PasswordHash:  string(passwordHash),
 	}
@@ -121,7 +125,7 @@ func CreateOTP(c *gin.Context, db *gorm.DB) {
 	var user models.User
 	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		// NOTE: for security reasons
-		c.AbortWithStatusJSON(http.StatusCreated, gin.H{"error": "Please Check your mail for the OTP"})
+		c.AbortWithStatusJSON(http.StatusCreated, gin.H{"data": "Please Check your mail for the OTP"})
 		return
 	}
 

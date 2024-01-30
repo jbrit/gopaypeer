@@ -23,6 +23,8 @@ type User struct {
 	OtpExpiresAt  time.Time `json:"-"`
 	PrivateKey    string    `json:"-"`
 	PublicKey     string    `json:"pubkey"`
+	FirstName     string    `json:"first_name"`
+	LastName      string    `json:"last_name"`
 }
 
 func (u *User) SendMail(message string) {
@@ -57,20 +59,8 @@ func (user *User) GetOrCreateSolanaAccount(db *gorm.DB) (*solana.Wallet, error) 
 	}
 
 	account := solana.NewWallet()
-	out, err := client.RequestAirdrop(
-		context.TODO(),
-		account.PublicKey(),
-		solana.LAMPORTS_PER_SOL*1,
-		rpc.CommitmentFinalized,
-	)
 	fmt.Println("account private key:", account.PrivateKey)
 	fmt.Println("account public key:", account.PublicKey())
-
-	// Airdrop 1 SOL to the new account:
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("airdrop transaction signature:", out)
 
 	user.PrivateKey = account.PrivateKey.String()
 	user.PublicKey = account.PublicKey().String()
@@ -78,6 +68,19 @@ func (user *User) GetOrCreateSolanaAccount(db *gorm.DB) (*solana.Wallet, error) 
 	if err := db.Save(user).Error; err != nil {
 		return nil, err
 	}
+
+	// Airdrop 1 SOL to the new account:
+	out, err := client.RequestAirdrop(
+		context.TODO(),
+		account.PublicKey(),
+		solana.LAMPORTS_PER_SOL*1,
+		rpc.CommitmentFinalized,
+	)
+	if err != nil {
+		fmt.Println(err)
+		return account, err
+	}
+	fmt.Println("airdrop transaction signature:", out)
 
 	return account, err
 }

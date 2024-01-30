@@ -19,6 +19,7 @@ func main() {
 	router.POST("/reset-password-otp", dbHandler(handlers.GetPasswordChangeToken))
 	router.POST("/reset-password", dbHandler(handlers.ChangePassword))
 	router.GET("/me", dbHandler(handlers.CurrentUser))
+	router.GET("/pubkey-user-map", dbHandler(handlers.PubkeyToUser))
 
 	router.Run("localhost:8999")
 }
