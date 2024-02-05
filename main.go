@@ -20,6 +20,8 @@ func main() {
 	router.POST("/reset-password", dbHandler(handlers.ChangePassword))
 	router.GET("/me", dbHandler(handlers.CurrentUser))
 	router.GET("/pubkey-user-map", dbHandler(handlers.PubkeyToUser))
+	router.POST("/create-card", dbHandler(handlers.CreateCard))
+	router.POST("/set-card-status", dbHandler(handlers.SetCardStaus))
 
 	router.Run("localhost:8999")
 }

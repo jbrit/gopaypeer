@@ -17,7 +17,7 @@ func requireAuth(c *gin.Context, db *gorm.DB) (*models.User, error) {
 	}
 
 	var user models.User
-	if err := db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+	if err := db.Preload("DebitCard").Where("id = ?", claims.UserID).First(&user).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
 		return nil, fmt.Errorf("")
 	}

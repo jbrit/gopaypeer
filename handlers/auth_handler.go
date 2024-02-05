@@ -81,7 +81,7 @@ func LoginUser(c *gin.Context, db *gorm.DB) {
 	}
 
 	var user models.User
-	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := db.Preload("DebitCard").Where("email = ?", input.Email).First(&user).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid Email/Password"})
 		return
 	}
