@@ -42,7 +42,7 @@ type Balance struct {
 
 func getBalance(user *models.User, mint solana.PublicKey) chan Balance {
 	r := make(chan Balance)
-	amount, err := user.GetAssociatedTokenAccountBalance(core.NgnMint)
+	amount, err := user.GetAssociatedTokenAccountBalance(mint)
 
 	go func() {
 		r <- Balance{
