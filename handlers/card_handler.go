@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +37,6 @@ func SetCardStaus(c *gin.Context, db *gorm.DB) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println(input)
 
 	user, err := requireAuth(c, db)
 	if err != nil {
@@ -49,7 +47,7 @@ func SetCardStaus(c *gin.Context, db *gorm.DB) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Card does not exist"})
 		return
 	}
-	fmt.Println(user.DebitCard)
+
 	if user.DebitCard.CardActive == input.CardActive {
 		if input.CardActive {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Card is already active"})

@@ -171,7 +171,7 @@ func (user *User) CreateCard(db *gorm.DB) error {
 	return nil
 }
 
-func (user *User) MakeTransfer(amount uint64, accountTo solana.PublicKey) (*solana.Signature, error) {
+func (user *User) MakeSolTransfer(amount uint64, accountTo solana.PublicKey) (*solana.Signature, error) {
 	instructions := []solana.Instruction{
 		system.NewTransferInstruction(
 			amount,

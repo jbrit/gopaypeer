@@ -23,6 +23,7 @@ func main() {
 	router.POST("/create-card", dbHandler(handlers.CreateCard))
 	router.POST("/set-card-status", dbHandler(handlers.SetCardStaus))
 	router.GET("/balances", dbHandler(handlers.GetBalances))
+	router.POST("/send", dbHandler(handlers.MakeTransfer))
 
 	router.Run("localhost:8999")
 }
