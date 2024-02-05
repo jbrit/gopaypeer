@@ -22,6 +22,7 @@ func main() {
 	router.GET("/pubkey-user-map", dbHandler(handlers.PubkeyToUser))
 	router.POST("/create-card", dbHandler(handlers.CreateCard))
 	router.POST("/set-card-status", dbHandler(handlers.SetCardStaus))
+	router.GET("/balances", dbHandler(handlers.GetBalances))
 
 	router.Run("localhost:8999")
 }

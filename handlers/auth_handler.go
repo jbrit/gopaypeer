@@ -1,15 +1,14 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jbrit/gopaypeer/core"
 	"github.com/jbrit/gopaypeer/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -130,15 +129,10 @@ func CreateOTP(c *gin.Context, db *gorm.DB) {
 	}
 
 	// generate OTP
-	numbers := [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-	OTP := make([]byte, 4)
-	_, err := io.ReadAtLeast(rand.Reader, OTP, 4)
+	OTP, err := core.GetRandomNumberString(4)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-	for i := 0; i < len(OTP); i++ {
-		OTP[i] = numbers[int(OTP[i])%len(OTP)]
 	}
 
 	user.Otp = string(OTP)

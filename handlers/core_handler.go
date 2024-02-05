@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gagliardetto/solana-go"
 	"github.com/gin-gonic/gin"
+	"github.com/jbrit/gopaypeer/core"
 	"github.com/jbrit/gopaypeer/models"
 	"gorm.io/gorm"
 )
@@ -31,6 +33,47 @@ func CurrentUser(c *gin.Context, db *gorm.DB) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+type Balance struct {
+	amount *uint64
+	err    error
+}
+
+func getBalance(user *models.User, mint solana.PublicKey) chan Balance {
+	r := make(chan Balance)
+	amount, err := user.GetAssociatedTokenAccountBalance(core.NgnMint)
+
+	go func() {
+		r <- Balance{
+			amount: amount,
+			err:    err,
+		}
+	}()
+
+	return r
+}
+
+func GetBalances(c *gin.Context, db *gorm.DB) {
+
+	user, err := requireAuth(c, db)
+	if err != nil {
+		return
+	}
+
+	chNgn, chnUsd := getBalance(user, core.NgnMint), getBalance(user, core.UsdMint)
+	ngnBalance, usdBalance := <-chNgn, <-chnUsd
+
+	if ngnBalance.err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": ngnBalance.err.Error()})
+		return
+	}
+	if usdBalance.err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": usdBalance.err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ngn_kobo": ngnBalance.amount, "usd_cent": usdBalance.amount})
 }
 
 func PubkeyToUser(c *gin.Context, db *gorm.DB) {

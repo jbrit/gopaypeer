@@ -3,14 +3,17 @@ package models
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gagliardetto/solana-go"
+	associatedtokenaccount "github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/rpc"
 	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
 	"github.com/gagliardetto/solana-go/rpc/ws"
 	"github.com/google/uuid"
+	"github.com/jbrit/gopaypeer/core"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -56,12 +59,9 @@ func (user *User) ExpireOTP(OTP string, db *gorm.DB) error {
 }
 
 func (user *User) GetOrCreateSolanaAccount(db *gorm.DB) (*solana.Wallet, error) {
-	// TODO: custom iron forge
-	client := rpc.New(rpc.DevNet_RPC)
-
 	if user.PrivateKey != "" {
 		account, err := solana.WalletFromPrivateKeyBase58(user.PrivateKey)
-		client.RequestAirdrop(
+		core.Client.RequestAirdrop(
 			context.TODO(),
 			account.PublicKey(),
 			solana.LAMPORTS_PER_SOL*1,
@@ -82,7 +82,7 @@ func (user *User) GetOrCreateSolanaAccount(db *gorm.DB) (*solana.Wallet, error) 
 	}
 
 	// Airdrop 1 SOL to the new account:
-	out, err := client.RequestAirdrop(
+	out, err := core.Client.RequestAirdrop(
 		context.TODO(),
 		account.PublicKey(),
 		solana.LAMPORTS_PER_SOL*1,
@@ -98,13 +98,12 @@ func (user *User) GetOrCreateSolanaAccount(db *gorm.DB) (*solana.Wallet, error) 
 }
 
 func (user *User) MakeTransaction(instructions []solana.Instruction) (*solana.Signature, error) {
-	rpcClient := rpc.New(rpc.DevNet_RPC)
 	wsClient, err := ws.Connect(context.Background(), rpc.DevNet_WS)
 	if err != nil {
 		return nil, err
 	}
 	accountFrom := solana.MustPrivateKeyFromBase58(user.PrivateKey)
-	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+	recent, err := core.Client.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +130,7 @@ func (user *User) MakeTransaction(instructions []solana.Instruction) (*solana.Si
 
 	sig, err := confirm.SendAndConfirmTransaction(
 		context.TODO(),
-		rpcClient,
+		core.Client,
 		wsClient,
 		tx,
 	)
@@ -143,12 +142,12 @@ func (user *User) MakeTransaction(instructions []solana.Instruction) (*solana.Si
 }
 
 func (user *User) CreateCard(db *gorm.DB) error {
-	cardNumberSuffix, err := GetRandomNumberString(12)
+	cardNumberSuffix, err := core.GetRandomNumberString(12)
 	if err != nil {
 		return err
 	}
 
-	cvv, err := GetRandomNumberString(3)
+	cvv, err := core.GetRandomNumberString(3)
 	if err != nil {
 		return err
 	}
@@ -181,6 +180,59 @@ func (user *User) MakeTransfer(amount uint64, accountTo solana.PublicKey) (*sola
 		).Build(),
 	}
 	return user.MakeTransaction(instructions)
+}
+
+func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint64, error) {
+	payer := solana.MustPrivateKeyFromBase58(user.PrivateKey)
+	wallet := payer.PublicKey()
+	ata, _, err := solana.FindAssociatedTokenAddress(
+		wallet,
+		mint,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = core.Client.GetAccountInfo(
+		context.TODO(),
+		ata,
+	)
+
+	if err != nil && err.Error() == "not found" {
+		_, err = user.MakeTransaction([]solana.Instruction{
+			associatedtokenaccount.NewCreateInstruction(
+				wallet,
+				wallet,
+				mint,
+			).Build(),
+		})
+	}
+
+	if err != nil && err.Error() != "not found" {
+		return nil, err
+	}
+
+	// Get and Normalize balance
+	balance, err := core.Client.GetTokenAccountBalance(
+		context.Background(),
+		ata,
+		"confirmed",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	balanceString := "0"
+	if balanceLength := len(balance.Value.Amount); balanceLength > 7 {
+		balanceString = balance.Value.Amount[:balanceLength-7]
+	}
+
+	balanceNum, err := strconv.ParseUint(balanceString, 10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &balanceNum, nil
 }
 
 func ConnectDB() *gorm.DB {
