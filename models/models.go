@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -42,11 +43,19 @@ type User struct {
 	DebitCard     PaypeerDebitCard `json:"debit_card"`
 }
 
-func (u *User) SendMail(message string) {
+func (u *User) SendMail(subject string, message string) error {
+	if os.Getenv("MAIL_MODE") == "PRODUCTION" {
+		err := core.SendMail(u.Email, subject, message)
+		if err != nil {
+			return err
+		}
+	}
 	fmt.Println("=====")
 	fmt.Println("email to", u.Email)
+	fmt.Println("email subject", subject)
 	fmt.Println(message)
 	fmt.Println("=====")
+	return nil
 }
 
 func (user *User) ExpireOTP(OTP string, db *gorm.DB) error {

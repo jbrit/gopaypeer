@@ -56,6 +56,8 @@ func RegisterUser(c *gin.Context, db *gorm.DB) {
 	}
 
 	user.GetOrCreateSolanaAccount(db)
+	message := fmt.Sprintf("Welcome %s, \nYou just created a Paypeer Account.", user.FirstName)
+	user.SendMail("Welcome to Paypeer", message)
 
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
@@ -144,8 +146,11 @@ func CreateOTP(c *gin.Context, db *gorm.DB) {
 
 	switch input.Reason {
 	case "passwordreset":
-		message := fmt.Sprintf("An attempt was made to reset your password. \nYour OTP is %s it expires in 10 minutes (%s GMT).", user.Otp, user.OtpExpiresAt.UTC().Format(time.TimeOnly))
-		user.SendMail(message)
+		message := fmt.Sprintf("Hello %s, \nAn attempt was made to reset your password. \nYour OTP is %s it expires in 10 minutes (%s GMT).", user.FirstName, user.Otp, user.OtpExpiresAt.UTC().Format(time.TimeOnly))
+		if user.SendMail("Your Paypeer Password Reset OTP", message) != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		break
 	default:
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
