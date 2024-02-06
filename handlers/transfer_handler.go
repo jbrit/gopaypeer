@@ -90,3 +90,59 @@ func MakeTransfer(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Transfer Successful"})
 }
+
+type TopUpCardInput struct {
+	Amount uint64 `json:"amount" form:"amount" binding:"required"`
+}
+
+func TopUpCard(c *gin.Context, db *gorm.DB) {
+	var input TopUpCardInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := requireAuth(c, db)
+	if err != nil {
+		return
+	}
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	owner := solana.MustPublicKeyFromBase58(user.PublicKey)
+	ownerAta, _, err := solana.FindAssociatedTokenAddress(
+		owner,
+		core.UsdMint,
+	)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	destinationAta := solana.MustPublicKeyFromBase58("Bg9XgCCQrKbNxN9un9bcdF59WukSMW7KzUGaHqM54Sn")
+
+	if _, err = user.MakeTransaction([]solana.Instruction{
+		token.NewTransferCheckedInstruction(
+			input.Amount*1e7, // * 10e7 for remaining decimals
+			9,                // no of decimals
+			ownerAta,
+			core.UsdMint,
+			destinationAta,
+			owner,
+			[]solana.PublicKey{owner},
+		).Build(),
+	}); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	user.DebitCard.Balance += uint(input.Amount)
+	if tx := db.Save(&user.DebitCard); tx.Error != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}

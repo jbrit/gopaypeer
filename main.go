@@ -25,6 +25,7 @@ func main() {
 	router.GET("/balances", dbHandler(handlers.GetBalances))
 	router.POST("/send", dbHandler(handlers.MakeTransfer))
 	router.POST("/swap", dbHandler(handlers.MakeSwap))
+	router.POST("/topup-card", dbHandler(handlers.TopUpCard))
 
 	router.Run("localhost:8999")
 }
