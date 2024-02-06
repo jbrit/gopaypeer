@@ -24,6 +24,7 @@ func main() {
 	router.POST("/set-card-status", dbHandler(handlers.SetCardStaus))
 	router.GET("/balances", dbHandler(handlers.GetBalances))
 	router.POST("/send", dbHandler(handlers.MakeTransfer))
+	router.POST("/swap", dbHandler(handlers.MakeSwap))
 
 	router.Run("localhost:8999")
 }
