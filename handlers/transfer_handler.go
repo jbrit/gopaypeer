@@ -68,7 +68,7 @@ func MakeTransfer(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	if _, err = toUser.GetAssociatedTokenAccountBalance(mint); err != nil {
+	if _, _, err = toUser.GetAssociatedTokenAccountBalance(mint); err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

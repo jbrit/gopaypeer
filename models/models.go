@@ -182,7 +182,7 @@ func (user *User) MakeSolTransfer(amount uint64, accountTo solana.PublicKey) (*s
 	return user.MakeTransaction(instructions)
 }
 
-func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint64, error) {
+func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint64, *solana.PublicKey, error) {
 	payer := solana.MustPrivateKeyFromBase58(user.PrivateKey)
 	wallet := payer.PublicKey()
 	ata, _, err := solana.FindAssociatedTokenAddress(
@@ -190,7 +190,7 @@ func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint
 		mint,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = core.Client.GetAccountInfo(
@@ -209,7 +209,7 @@ func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint
 	}
 
 	if err != nil && err.Error() != "not found" {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Get and Normalize balance
@@ -219,7 +219,7 @@ func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint
 		"confirmed",
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	balanceString := "0"
@@ -229,10 +229,10 @@ func (user *User) GetAssociatedTokenAccountBalance(mint solana.PublicKey) (*uint
 
 	balanceNum, err := strconv.ParseUint(balanceString, 10, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &balanceNum, nil
+	return &balanceNum, &ata, nil
 }
 
 func ConnectDB() *gorm.DB {

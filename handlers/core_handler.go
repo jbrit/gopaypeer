@@ -35,19 +35,26 @@ func CurrentUser(c *gin.Context, db *gorm.DB) {
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+type NoErrorBalance struct {
+	Amount *uint64           `json:"amount"`
+	Ata    *solana.PublicKey `json:"ata"`
+}
 type Balance struct {
-	amount *uint64
-	err    error
+	balance NoErrorBalance
+	err     error
 }
 
 func getBalance(user *models.User, mint solana.PublicKey) chan Balance {
 	r := make(chan Balance)
-	amount, err := user.GetAssociatedTokenAccountBalance(mint)
+	amount, ata, err := user.GetAssociatedTokenAccountBalance(mint)
 
 	go func() {
 		r <- Balance{
-			amount: amount,
-			err:    err,
+			balance: NoErrorBalance{
+				Amount: amount,
+				Ata:    ata,
+			},
+			err: err,
 		}
 	}()
 
@@ -73,7 +80,7 @@ func GetBalances(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ngn_kobo": ngnBalance.amount, "usd_cent": usdBalance.amount})
+	c.JSON(http.StatusOK, gin.H{"ngn_kobo": ngnBalance.balance, "usd_cent": usdBalance.balance})
 }
 
 func PubkeyToUser(c *gin.Context, db *gorm.DB) {
